@@ -240,4 +240,7 @@ notifier:
       - dev
   ```
 - Run this command to generate a hashed password for authelia ``` docker run -it authelia/authelia:latest authelia crypto hash generate argon2```.
-
+```
+If you want to connect to db directly from external client, supabase not provides supavisor to enable you for the same.
+postgresql://postgres.[POOLER_TENANT_ID]:[POSTGRES_PASSWORD]@[YOUR_DOMAIN]:6543/postgres
+```
