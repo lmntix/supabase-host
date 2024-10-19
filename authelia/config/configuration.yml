@@ -1,0 +1,131 @@
+## The theme to display: light, dark, grey, auto.
+theme: light
+
+## The secret used to generate JWT tokens when validating user identity by email confirmation. JWT Secret can also be
+## set using a secret: https://www.authelia.com/c/secrets
+jwt_secret: a_very_important_secret
+
+default_redirection_url: https://auth.app.localhost # confusing haxxors
+default_2fa_method: ""
+
+server:
+  host: 0.0.0.0
+  port: 9091
+  path: ""
+  enable_pprof: false
+  enable_expvars: false
+  disable_healthcheck: false
+  read_buffer_size: 4096
+  write_buffer_size: 4096
+
+  ## Server headers configuration/customization.
+  headers:
+    ## The CSP Template. Read the docs.
+    csp_template: ""
+
+  ## Authelia by default doesn't accept TLS communication on the server port. This section overrides this behaviour.
+  tls:
+    key: ""
+    certificate: ""
+    client_certificates: []
+
+log:
+  level: debug
+
+totp:
+  issuer: app.localhost #your authelia top-level domain
+  period: 30
+  digits: 6
+  algorithm: sha1
+  skew: 1
+
+authentication_backend:
+  file:
+    path: /config/users_database.yml
+    watch: false
+    search:
+      email: false
+      case_insensitive: false
+    password:
+      algorithm: argon2
+      argon2:
+        variant: argon2id
+        iterations: 3
+        memory: 65536
+        parallelism: 4
+        key_length: 32
+        salt_length: 16
+  ## Password Reset Options.
+  password_reset:
+    ## Disable both the HTML element and the API for reset password functionality.
+    disable: false
+    ## External reset password url that redirects the user to an external reset portal. This disables the internal reset
+    ## functionality.
+    custom_url: ""
+  refresh_interval: 5m
+
+
+password_policy:
+  ## The standard policy allows you to tune individual settings manually.
+  standard:
+    enabled: false
+    min_length: 8
+    max_length: 0
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: true
+
+  ## zxcvbn is a well known and used password strength algorithm. It does not have tunable settings.
+  zxcvbn:
+    enabled: false
+    min_score: 3
+
+
+access_control:
+  ## Default policy can either be 'bypass', 'one_factor', 'two_factor' or 'deny'. It is the policy applied to any
+  ## resource if there is no policy to be applied to the user.
+  default_policy: deny
+  rules:
+    - domain:
+        - "auth.app.localhost"
+      policy: bypass
+    - domain: "supabase.app.localhost"
+      policy: one_factor
+
+session:
+  ## The name of the session cookie.
+  name: authelia_session
+  domain: app.localhost
+  ## https://www.authelia.com/c/session#same_site
+  same_site: lax
+
+  ## The secret to encrypt the session data. 
+  ## This is only used with Redis / Redis Sentinel.
+  secret: insecure_session_secret
+  ## The time before the cookie expires and the session is destroyed if remember me IS NOT selected.
+  expiration: 1h
+  ## The inactivity time before the session is reset. If expiration is set to 1h, and this is set to 5m, if the user
+  ## does not select the remember me option their session will get destroyed after 1h, or after 5m since the last time
+  ## Authelia detected user activity.
+  inactivity: 5m
+  ## The time before the cookie expires and the session is destroyed if remember me IS selected.
+  ## Value of -1 disables remember me.
+  remember_me_duration: 1M
+
+# security measures against hackers
+regulation:
+  max_retries: 3
+  find_time: 2m
+  ban_time: 30m
+
+storage:
+  encryption_key: a_very_important_secret
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  disable_startup_check: false
+  ## File System (Notification Provider)
+  filesystem:
+    filename: /config/notification.txt
