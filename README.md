@@ -1,58 +1,53 @@
-# Self-Hosted Supabase with Authelia and Caddy
-This setup is for a self-hosted Supabase instance, with Authelia providing authentication for Supabase Studio, replacing Kong's basic auth. It also uses Caddy as a reverse proxy and for TLS certificates, and works on localhost.
+This setup is for a self-hosted Supabase instance, with Authelia providing authentication for Supabase Studio, replacing Kong's basic auth. It also uses Caddy as a reverse proxy and for TLS certificates, and works on localhost as well. Lets go step by step:
 
-## Key Components
+**For reference** : https://github.com/lmntix/supabase-host
 
-- **Supabase** : Open-source backend as a service.
-- **Authelia** : Self-hosted single sign-on and two-factor authentication for securing Supabase Studio.
-- **Kong** : API gateway used for reverse proxying.
-- **Caddy** : Used for TLS certificates and as a reverse proxy.
+# Step 1
+Follow the official Supabase Documentation to get the files from github repository.
 
-
-## Localhost Setup
-The setup can be run on localhost for local development. Update the domains to whatever you would like.
-
-- **supabase.app.localhost** : Access Supabase services.
-- **auth.app.localhost** : Authelia authentication endpoint.
-
-## Clone supabase repository and set up the required Docker services 
-```https://supabase.com/docs/guides/self-hosting/docker```.
-
-## Configuration
-
-### 1. Caddyfile
-
-The following configuration sets up Caddy to forward authentication to Authelia and reverse proxy to Kong:
-
-```caddyfile
-supabase.app.localhost {
-    forward_auth authelia:9091 {
-        uri /api/authz/forward-auth?authelia_url=https://auth.app.localhost
-        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
-    }
-    reverse_proxy kong:8000
-}
-
-auth.app.localhost {
-    reverse_proxy authelia:9091
-}
-
-}
+Docs URL: https://supabase.com/docs/guides/self-hosting/docker
 ```
-### 2. kong.yml Modifications
-In the volumes/api/kong.yml file, the following lines are commented to disable basic authentication for Supabase Studio:
+# Get the code
+git clone --depth 1 https://github.com/supabase/supabase
 
-```yaml
+# Go to the docker folder
+cd supabase/docker
 
-# - name: basic-auth
-#   config:
-#     hide_credentials: true
+# Copy the fake env vars
+cp .env.example .env
 ```
-### 3. Docker Compose Additions
-Add the following services to your docker-compose.yml: (We just updated default_redirection_url,access_control and session in this file )
+# Step 2
+Update the .env files with below:
+```
+# Your Supabase API 
+API_EXTERNAL_URL: supabase.app.localhost
 
-```yaml
+# Your Supabase Dashboard URL
+SUPABASE_PUBLIC_URL: studio.app.localhost
+```
+# Step 3
+Navigate to volumes/api/kong.yml and comment out the last 3 steps as shown below if you do not want the basic auth. I will comment it out since I dont want the basic auth and will be using Authelia instead.
+```
+  ## Protected Dashboard - catch all remaining routes
+  - name: dashboard
+    _comment: 'Studio: /* -> http://studio:3000/*'
+    url: http://studio:3000/
+    routes:
+      - name: dashboard-all
+        strip_path: true
+        paths:
+          - /
+    plugins:
+      - name: cors
+      # - name: basic-auth
+      #   config:
+      #     hide_credentials: true
+```
+# Step 4
+Navigate back to supabase/docker, if not already there.
 
+Add below Caddy and Authelia services in the docker-compose.yml file
+```
   authelia:
     container_name: authelia
     image: authelia/authelia
@@ -79,23 +74,62 @@ Add the following services to your docker-compose.yml: (We just updated default_
       - ./caddy_config:/config
       - ./caddy_data:/data
 ```
-### 4. Authelia Configuration
-Add the following services to your authelia/config/configuration.yml:
+# Step 5
+Create a Caddyfile in the same directory. This will be used by the caddy container for TLS.
 
-```yaml
+(This is going to forward us to authelia portal when trying to access the supabase dashboard. Only after authentication we would be able to access the dashboard.)
 
+Update the Caddyfile with domains for below services:
+
+- Supabase Dashboard - studio.app.localhost
+- Supabase API - api.app.localhost
+- Authelia Auth Portal - auth.app.localhost
+  
+```
+studio.app.localhost {
+    forward_auth authelia:9091 {
+        uri /api/authz/forward-auth?authelia_url=https://auth.app.localhost
+        copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
+    }
+    reverse_proxy kong:8000
+}
+
+  auth.app.localhost {
+    reverse_proxy authelia:9091
+  }
+
+  supabase.app.localhost {
+    reverse_proxy kong:8000
+  }
+
+}
+```
+# Step 6
+Run ``` docker-compose up -d ``` This will create necessary files for Authelia which we now need to update.
+
+# Step 7
+Navigate to authelia/config/confihuration.yml
+Replace the content with below.
+
+We basically update at 3 places with our domains.
+
+- default_redirection_url: https://auth.app.localhost
+- issuer: app.localhost
+- access_control domains
+
+```
   ## The theme to display: light, dark, grey, auto.
 theme: light
 
 ## The secret used to generate JWT tokens when validating user identity by email confirmation. JWT Secret can also be
-## set using a secret: https://www.authelia.com/c/secrets
+## set using a secret: 
 jwt_secret: a_very_important_secret
 
 default_redirection_url: https://auth.app.localhost # confusing haxxors
 default_2fa_method: ""
 
 server:
-  host: 0.0.0.0
+  host: 
   port: 9091
   path: ""
   enable_pprof: false
@@ -176,14 +210,14 @@ access_control:
     - domain:
         - "auth.app.localhost"
       policy: bypass
-    - domain: "supabase.app.localhost"
+    - domain: "studio.app.localhost"
       policy: one_factor
 
 session:
   ## The name of the session cookie.
   name: authelia_session
   domain: app.localhost
-  ## https://www.authelia.com/c/session#same_site
+  ## 
   same_site: lax
 
   ## The secret to encrypt the session data. 
@@ -214,33 +248,72 @@ notifier:
   disable_startup_check: false
   ## File System (Notification Provider)
   filesystem:
-    filename: /config/notification.txt
+    filename: /config/notification.txthttps://www.authelia.com/c/secretshttps://auth.app.localhost0.0.0.0https://www.authelia.com/c/session#same_site
+
 ```
-# How It Works
-- **Caddy** : Handles TLS termination and reverse proxying to Kong and other services.
-- **Authelia** : Secures access to Supabase Studio by forwarding authentication requests through /api/verify. It uses headers like Remote-User and Remote-Email to manage authentication.
-- **Kong** : API gateway with routes to services such as Supabase, with the basic auth plugin disabled for the Studio.
-  
-# Usage
-- Clone supabase repository and set up the required Docker services ```https://supabase.com/docs/guides/self-hosting/docker```.
-- Add Authelia and Caddy services to ```docker-compose.yml``` file
-- Update the necessary environment variables.
-- Run the stack using ```docker-compose up -d```.
-- Default credentials for Authelia are **username:**```authelia``` and **password:**```authelia```
-- Make sure to change the username password in the file /authelia/config/users_database.yml.
-  ```
-  users:
-  authelia:
+# Step 8
+Go to users_database.yml file. Default username and password present there would be authelia and authelia. You can update the list of username passwords there for those who would be able to access the supabase studio.
+
+Use below code in terminal to generate a hashed password to use here.
+
+``` docker run -it authelia/authelia:latest authelia crypto hash generate argon2 ```
+```
+users:
+  username:
     disabled: false
-    displayname: "Test User"
-    password: "$argon2id$v=19$m=32768,t=1,p=8$eUhVT1dQa082YVk2VUhDMQ$E8QI4jHbUBt3EdsU1NFDu4Bq5jObKNx7nBKSn1EYQxk"  # Password is 'authelia'
-    email: authelia@authelia.com
+    displayname: "User Full Name"
+    password: "$argon2id$v=19$m=65536,t=3,p=4$tMQZmtuSDygs/D9dereergtbShb2inyrrtgeDt/AH96tJcKZO3MWXRetkPMZdhhWo"  
+    email: lmntix@example.com
     groups:
       - admins
       - dev
-  ```
-- Run this command to generate a hashed password for authelia ``` docker run -it authelia/authelia:latest authelia crypto hash generate argon2```.
+ ```     
+# Step 9
+We are done!! Go back to the folder supabase/docker which has our docker compose file.
+
+``` docker-compose up -d --force-recreate ```
+
+If you want to logout, you can simply go back to auth.app.localhost and click on logout.
+
+
+# Important things to note after installation.
+
+- If you want to connect to db directly from external client, supabase now provides supavisor to enable you for the same at Port 5432/6543 for pooler/transaction mode.
+
+``` postgresql://postgres.[POOLER_TENANT_ID]:[POSTGRES_PASSWORD]@[YOUR_DOMAIN]:6543/postgres ```
+
+- In order to create a new JWT token you can run below command in the terminal
+
+``` node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" ```
+
+- When you create a new JWT Token for Supabase, you would need to create a new ANON_KEY as well as new SERVICE_ROLE key as well.
+
+In order to generate those there are 2 sources.
 ```
-If you want to connect to db directly from external client, supabase not provides supavisor to enable you for the same.
-postgresql://postgres.[POOLER_TENANT_ID]:[POSTGRES_PASSWORD]@[YOUR_DOMAIN]:6543/postgres
+- https://supabase.com/docs/guides/self-hosting/docker#generate-api-keys 
+- https://jwt.io/
 ```
+
+- There have been several issues raised that I saw about storage not working in supabase dashboard. That basically had to do with incorrect SERVICE_ROLE key being set. So if thats the issue you are facing as well, you can simple go to jwt.io and use it to create a proper key and then use it in env variables.
+
+It uses below objects:
+
+ANON KEY
+```
+{
+  "role": "anon",
+  "iss": "supabase",
+  "iat": 1729276200,
+  "exp": 1887042600
+}
+```
+SERVICE_ROLE KEY
+```
+{
+  "role": "service_role",
+  "iss": "supabase",
+  "iat": 1729276200,
+  "exp": 1887042600
+}
+```
+# Happy Coding!!!
