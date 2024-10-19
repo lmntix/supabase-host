@@ -1,5 +1,5 @@
 
-supabase.app.localhost {
+studio.app.localhost {
     forward_auth authelia:9091 {
         uri /api/verify?rd=https://auth.app.localhost
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
@@ -11,6 +11,6 @@ auth.app.localhost {
     reverse_proxy authelia:9091
 }
 
-logs.localhost {
-    reverse_proxy dozzle:8080
+supabase.localhost {
+    reverse_proxy kong:8000
 }
