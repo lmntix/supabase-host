@@ -90,7 +90,7 @@ access_control:
     - domain:
         - "auth.app.localhost"
       policy: bypass
-    - domain: "supabase.app.localhost"
+    - domain: "studio.app.localhost"
       policy: one_factor
 
 session:
