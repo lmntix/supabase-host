@@ -24,7 +24,7 @@ The following configuration sets up Caddy to forward authentication to Authelia 
 ```caddyfile
 supabase.app.localhost {
     forward_auth authelia:9091 {
-        uri /api/verify?rd=https://auth.app.localhost
+        uri /api/authz/forward-auth?authelia_url=https://auth.app.localhost
         copy_headers Remote-User Remote-Groups Remote-Name Remote-Email
     }
     reverse_proxy kong:8000
