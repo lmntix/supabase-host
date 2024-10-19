@@ -15,6 +15,9 @@ The setup can be run on localhost for local development. Update the domains to w
 - **supabase.app.localhost** : Access Supabase services.
 - **auth.app.localhost** : Authelia authentication endpoint.
 
+## Clone supabase repository and set up the required Docker services 
+```https://supabase.com/docs/guides/self-hosting/docker```.
+
 ## Configuration
 
 ### 1. Caddyfile
