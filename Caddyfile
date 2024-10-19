@@ -11,6 +11,6 @@ auth.app.localhost {
     reverse_proxy authelia:9091
 }
 
-supabase.localhost {
+supabase.app.localhost {
     reverse_proxy kong:8000
 }
