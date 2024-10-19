@@ -82,7 +82,7 @@ Create a Caddyfile in the same directory. This will be used by the caddy contain
 Update the Caddyfile with domains for below services:
 
 - Supabase Dashboard - studio.app.localhost
-- Supabase API - api.app.localhost
+- Supabase API - supabase.app.localhost
 - Authelia Auth Portal - auth.app.localhost
   
 ```
