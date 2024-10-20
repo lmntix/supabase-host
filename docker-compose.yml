@@ -19,20 +19,6 @@ services:
     environment:
       TZ: 'Asia/Kolkata'
 
-  caddy:
-    image: caddy
-    container_name: caddy
-    hostname: caddy
-    restart: unless-stopped
-    env_file: .env
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - ./caddy_config:/config
-      - ./caddy_data:/data
   studio:
     container_name: supabase-studio
     image: supabase/studio:20240923-2e3e90c
