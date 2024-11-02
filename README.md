@@ -316,4 +316,15 @@ SERVICE_ROLE KEY
   "exp": 1887042600
 }
 ```
+- When password is changed like for postgres in .env , It causes an error when started again docker compose up -d 
+
+Solution
+You need to do run below commands
+```
+docker compose down -v
+rm -rf volumes/db/data/
+docker compose up -d
+```
+
+
 # Happy Coding!!!
