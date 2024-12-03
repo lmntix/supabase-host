@@ -94,14 +94,12 @@ studio.app.localhost {
     reverse_proxy kong:8000
 }
 
-  auth.app.localhost {
+auth.app.localhost {
     reverse_proxy authelia:9091
-  }
+}
 
-  supabase.app.localhost {
+supabase.app.localhost {
     reverse_proxy kong:8000
-  }
-
 }
 ```
 # Step 6
