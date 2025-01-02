@@ -94,14 +94,12 @@ studio.app.localhost {
     reverse_proxy kong:8000
 }
 
-  auth.app.localhost {
+auth.app.localhost {
     reverse_proxy authelia:9091
-  }
+}
 
-  supabase.app.localhost {
+supabase.app.localhost {
     reverse_proxy kong:8000
-  }
-
 }
 ```
 # Step 6
@@ -316,4 +314,15 @@ SERVICE_ROLE KEY
   "exp": 1887042600
 }
 ```
+- When password is changed like for postgres in .env , It causes an error when started again docker compose up -d 
+
+Solution
+You need to do run below commands
+```
+docker compose down -v
+rm -rf volumes/db/data/
+docker compose up -d
+```
+
+
 # Happy Coding!!!
